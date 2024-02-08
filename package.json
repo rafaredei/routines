@@ -9,17 +9,17 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~50.0.2",
+    "@react-native-async-storage/async-storage": "1.21.0",
+    "expo": "~50.0.3",
+    "expo-av": "~13.10.3",
     "expo-status-bar": "~1.11.1",
+    "expo-updates": "~0.24.8",
     "react": "18.2.0",
     "react-native": "0.73.2",
     "react-native-countdown-circle-timer": "^3.2.1",
-    "react-native-speak": "^1.0.14",
+    "react-native-svg": "14.1.0",
     "react-native-text-ticker": "^1.14.0",
-    "react-native-tts": "^4.1.0",
-    "expo-speech": "~11.7.0",
-    "expo-av": "~13.10.3",
-    "@react-native-async-storage/async-storage": "1.21.0"
+    "react-native-tts": "^4.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

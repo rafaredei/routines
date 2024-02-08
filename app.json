@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Interval Timer",
+    "name": "Routines+",
     "slug": "it3",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/routineIcon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/routineIcon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,7 +16,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rafaredei.it3"
+      "bundleIdentifier": "com.rafaredei.it3",
+      "buildNumber": "5",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": {
+          "NSMicrophoneUsageDescription": "This app uses a library to play and record audio, however no audio is actually recorded"
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -31,6 +37,21 @@
       "eas": {
         "projectId": "8b1736c6-0dd8-4038-825e-14d9b584b82e"
       }
-    }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8b1736c6-0dd8-4038-825e-14d9b584b82e"
+    },
+    "plugins": [
+      [
+        "expo-updates",
+        {
+          "username": "rafaredei"
+        }
+      ]
+    ]
+
   }
 }

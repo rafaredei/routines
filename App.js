@@ -13,10 +13,12 @@ import go from "./assets/go.mp3"
 import halfway from "./assets/halfway.mp3"
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Updates from 'expo-updates';
+//import Tts from 'react-native-tts';
 
 
 let routineList = [
-  { id: '0', text: 'satoru gojo', timers: [{timerID: '0', name: "get ready", duration: "00:10"}], completions: 0 },
+  { id: '0', text: 'sample routine', timers: [{timerID: '0', name: "get ready", duration: "00:10"}], completions: 0},
 ];
 
 const App = () => {
@@ -24,6 +26,7 @@ const App = () => {
   const [isEditPageVisible, setIsEditPageVisible] = useState(false); //handles bringing up edit page
   const [isPlayPageVisible, setIsPlayPageVisible] = useState(false);
   const [isCompletePageVisible, setIsCompletePageVisible] = useState(false);
+  const [isSettingsPageVisible, setIsSettingsPageVisible] = useState(false);
   const [selectedRoutine, setSelectedRoutine] = useState(null); //handles selected routines
   const [selectedTimer, setSelectedTimer] = useState(null); //handles selected timer
   const [name, setName] = useState(" ");
@@ -32,14 +35,29 @@ const App = () => {
   const [timerRunning, setTimerRunning] = useState(false);
   const [key, setKey] = useState(0)
   const [isTimerPaused, setIsTimerPaused] = useState(false);
-  const [isHalfway, setIsHalfway] = useState(false);
-  const [isOneSecond, setIsOneSecond] = useState(false);
-  const [isTwoSecond, setIsTwoSecond] = useState(false);
-  const [isThreeSecond, setIsThreeSecond] = useState(false);
+
+  async function onFetchUpdateAsync () {
+    try {
+      const update = await Updates.checkForUpdateAsync();
+
+      if (update.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        await Updates. reloadAsync();
+      }
+    } catch (error) {
+    // You can also add an alert() to see the error message in case of an error when fetching updates.
+    alert('Error fetching latest Expo update: ${error} *');
+    }
+  }
+
+  useEffect(() => {
+    onFetchUpdateAsync()
+  }, [])
 
   useEffect(() => {
     // Load routines from AsyncStorage when the app starts
     loadRoutines();
+    configureAudioSession();
   }, []);
 
   useEffect(() => {
@@ -68,19 +86,34 @@ const App = () => {
       console.error('Error saving routines:', error);
     }
   };
+
+  const configureAudioSession = async () => {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX, // Prevents interruption of other audio sources
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX, // Prevents interruption of other audio sources
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+  };
+
+  // Call the function to configure audio session
    
   const addRoutine = () => { //adds new routines
     setIsEditPageVisible(true);
-    const newRoutine = { id: `${routineList.length}`, text: "new routine", timers: [{timerID: '0', name: "get ready", duration: "00:10"}], completions: 0 };
+    const newRoutine = { id: `${routineList.length}`, text: "new routine", timers: [{timerID: '0', name: "get ready", duration: "00:10"}], completions: 0};
     routineList.push(newRoutine);
     setRoutineListState[[...routineList]]
     setSelectedRoutine(newRoutine);
+    saveRoutines();
   }
 
   const routinePress = (item) => {
    setSelectedRoutine(item)
   };
- 
+
   const deleteRoutine = (index) => {
     routineList.splice(index, 1); //remove selected routine from list
     for (let i = index; i < routineList.length; i++) { //decrement all id's by 1 that come after deleted routine
@@ -89,6 +122,7 @@ const App = () => {
     setSelectedRoutine(null);
     setIsEditPageVisible(false);
     setRoutineListState(routineList);
+    saveRoutines();
   }
 
   const renameRoutine = (newName) => {
@@ -101,6 +135,7 @@ const App = () => {
       routineList[index].timers = timers;
       setRoutineListState({...routineList});
     }
+    saveRoutines();
   }
 
   const renameTimer = (newName, item) => {
@@ -109,6 +144,7 @@ const App = () => {
     const updatedRoutineList = [...routineList]
     updatedRoutineList[routineIndex].timers[timerIndex].name = newName
     setRoutineListState(updatedRoutineList)
+    saveRoutines();
   }
 
   const chooseDuration = (newDuration, item) => {
@@ -117,6 +153,7 @@ const App = () => {
     const updatedRoutineList = [...routineList]
     updatedRoutineList[routineIndex].timers[timerIndex].duration = newDuration
     setRoutineListState(updatedRoutineList)
+    saveRoutines();
   }
 
   const deleteTimer = (item) => {
@@ -130,6 +167,7 @@ const App = () => {
       }
       setRoutineListState(updatedRoutineList)
     }
+    saveRoutines();
   }
 
   const copyTimer = (item) => {
@@ -138,74 +176,79 @@ const App = () => {
     const updatedRoutineList = [...routineList]
     updatedRoutineList[routineIndex].timers.push(newTimer)
     setRoutineListState(updatedRoutineList)
+    saveRoutines();
   }
 
   const playRoutine = () => {
-    playGoSound()
+    //Tts.speak('Hello, world!');
     setIsPlayPageVisible(true)
     setCurrentTimerIndex(0)
     setTimerRunning(true)
+    //console.log(selectedRoutine)
     setKey(0)
-    setIsHalfway(false)
-    setIsOneSecond(false)
-    setIsTwoSecond(false)
-    setIsThreeSecond(false)
   }
 
   const playFinishSound = async () => {
     const finishSound = new Audio.Sound()
-    await finishSound.loadAsync(require('./assets/finish.mp3'));
+    await finishSound.loadAsync(finish);
     await finishSound.playAsync();
   }
 
   const playCountdownSound = async () => {
     const countdownSound = new Audio.Sound()
-    await countdownSound.loadAsync(require('./assets/countdown.mp3'));
+    await countdownSound.loadAsync(countdown);
     await countdownSound.playAsync();
   } 
 
   const playHalfwaySound = async () => {
     const halfwaySound = new Audio.Sound()
-    await halfwaySound.loadAsync(require('./assets/halfway.mp3'));
+    // await halfwaySound.loadAsync(require('./assets/halfway.mp3'));
+    await halfwaySound.loadAsync(halfway);
     await halfwaySound.playAsync();
   } 
 
   const playGoSound = async () => {
     const goSound = new Audio.Sound()
-    await goSound.loadAsync(require('./assets/go.mp3'));
+    await goSound.loadAsync(go);
     await goSound.playAsync();
   } 
   
   const children = ({ remainingTime }) => { //format remaining time
+    //console.log(selectedRoutine.total)
+    let total = 0;
+    for (let i = currentTimerIndex; i < selectedRoutine.timers.length; i++) {
+      total += convert(selectedRoutine.timers[i].duration)
+    }
+    let diff = convert(selectedRoutine.timers[currentTimerIndex].duration) - remainingTime
+    total -= diff
+
+    const totalMinutes = Math.floor(total / 60);
+    const totalSeconds = total % 60;
+    const formattedTotalMinutes = String(totalMinutes).padStart(2, '0');
+    const formattedTotalSeconds = String(totalSeconds).padStart(2, '0');
+
     const minutes = Math.floor(remainingTime / 60);
     const seconds = remainingTime % 60;
     const formattedMinutes = String(minutes).padStart(2, '0');
     const formattedSeconds = String(seconds).padStart(2, '0');
 
-    if (remainingTime === Math.ceil((convert(selectedRoutine.timers[currentTimerIndex].duration) / 2)) && (!isHalfway) && (convert(selectedRoutine.timers[currentTimerIndex].duration) > 9)) {
-      playHalfwaySound();
-      setIsHalfway(true)
-    }
-    if (remainingTime === 3 && !isThreeSecond) {
-      playCountdownSound()
-      setIsThreeSecond(true)
-    }
-    if (remainingTime === 2 && !isTwoSecond) {
-      playCountdownSound()
-      setIsTwoSecond(true)
-    }
-    if (remainingTime === 1 && !isOneSecond) {
-      playCountdownSound()
-      setIsOneSecond(true)
-    }
-
     return (
       <View style={{ alignItems: 'center' }}>
-        <Text style={{ fontSize: 40, fontWeight: 'bold' }}>{`${formattedMinutes}:${formattedSeconds}`}</Text>
+        <Text style={{ fontSize: 20}}>{`${formattedTotalMinutes}:${formattedTotalSeconds}`}</Text>
+        <Text style={{ fontSize: 45, fontWeight: 'bold' }}>{`${formattedMinutes}:${formattedSeconds}`}</Text>
         <Text style={{ fontSize: 16, marginTop: 5 }}>Remaining</Text>
       </View>
     );
   };
+
+  const onUpdate = (remainingTime) => {
+    if (remainingTime === Math.ceil((convert(selectedRoutine.timers[currentTimerIndex].duration) / 2)) && (convert(selectedRoutine.timers[currentTimerIndex].duration) > 9)) {
+      playHalfwaySound();
+    }
+    if (remainingTime < 4 && remainingTime > 0) {
+      playCountdownSound()
+    }
+  }
 
   const onComplete = () => {
     if (selectedRoutine.timers[currentTimerIndex + 1]) {
@@ -222,10 +265,6 @@ const App = () => {
       selectedRoutine.completions++
       setKey(0) //ends timer i think??
     }
-    setIsHalfway(false)
-    setIsOneSecond(false)
-    setIsTwoSecond(false)
-    setIsThreeSecond(false)
   }
 
   const checkTimer = () => {
@@ -270,10 +309,6 @@ const App = () => {
       setTimerRunning(true)
       setKey(key - 1)
     }
-    setIsHalfway(false)
-    setIsOneSecond(false)
-    setIsTwoSecond(false)
-    setIsThreeSecond(false)
   }
 
   const skipForward = () => {
@@ -297,6 +332,30 @@ const App = () => {
   return (
     //play button and selected routine
     <View style={{justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+      <View style={{paddingRight: 310}}>
+        <TouchableOpacity onPress={() => setIsSettingsPageVisible(true)}>
+          <AntDesign name='setting' size={30}/>
+        </TouchableOpacity>
+
+        <Modal
+        visible={isSettingsPageVisible}
+        onRequestClose={() => setIsSettingsPageVisible(false)}
+        presentationStyle='fullscreen'
+        animationType='slide'
+        >
+        <View style={{alignItems: 'center', paddingTop: 50, paddingLeft: 300}}>
+          <TouchableOpacity onPress={() => setIsSettingsPageVisible(false)}>
+            <AntDesign name='check' size={30}/>
+          </TouchableOpacity>
+        </View>
+        <View style={{justifyContent: 'center', alignItems: 'center'}}>
+          <Text style={{fontSize: 25}}>
+            coming soon :)
+          </Text>
+        </View>
+        </Modal>
+
+      </View>
       <TouchableOpacity
         onPress={() => {
             if (selectedRoutine !== null) {
@@ -307,6 +366,7 @@ const App = () => {
           >
         <AntDesign name='play' size={200}/>
       </TouchableOpacity>
+
 
       <Modal
       visible={isCompletePageVisible}
@@ -349,6 +409,7 @@ const App = () => {
             colorsTime={[7, 5, 2, 0]}
             size={300}  
             onComplete={() => onComplete()}
+            onUpdate={onUpdate}
           >
             {children}
           </CountdownCircleTimer>
