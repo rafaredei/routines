@@ -2,7 +2,7 @@
   "expo": {
     "name": "Routines+",
     "slug": "it3",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/routineIcon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rafaredei.it3",
-      "buildNumber": "5",
+      "buildNumber": "8",
       "infoPlist": {
         "NSMicrophoneUsageDescription": {
           "NSMicrophoneUsageDescription": "This app uses a library to play and record audio, however no audio is actually recorded"

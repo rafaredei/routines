@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import {AntDesign} from '@expo/vector-icons';
 import {Feather} from '@expo/vector-icons';
 import {Entypo} from '@expo/vector-icons';
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import { CountdownCircleTimer } from 'react-native-countdown-circle-timer';
 import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Modal} from 'react-native';
 import TextTicker from 'react-native-text-ticker';
@@ -13,7 +13,6 @@ import go from "./assets/go.mp3"
 import halfway from "./assets/halfway.mp3"
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Updates from 'expo-updates';
 //import Tts from 'react-native-tts';
 
 
@@ -22,11 +21,13 @@ let routineList = [
 ];
 
 const App = () => {
-  
+  const listRef = useRef(); //for timer list to scroll down when new element added
+  const listRef2 = useRef(); //for routine list to scroll down when new element added
   const [isEditPageVisible, setIsEditPageVisible] = useState(false); //handles bringing up edit page
   const [isPlayPageVisible, setIsPlayPageVisible] = useState(false);
   const [isCompletePageVisible, setIsCompletePageVisible] = useState(false);
   const [isSettingsPageVisible, setIsSettingsPageVisible] = useState(false);
+  const [isNameTimerVisible, setIsNameTimerVisible] = useState(false);
   const [selectedRoutine, setSelectedRoutine] = useState(null); //handles selected routines
   const [selectedTimer, setSelectedTimer] = useState(null); //handles selected timer
   const [name, setName] = useState(" ");
@@ -35,24 +36,6 @@ const App = () => {
   const [timerRunning, setTimerRunning] = useState(false);
   const [key, setKey] = useState(0)
   const [isTimerPaused, setIsTimerPaused] = useState(false);
-
-  async function onFetchUpdateAsync () {
-    try {
-      const update = await Updates.checkForUpdateAsync();
-
-      if (update.isAvailable) {
-        await Updates.fetchUpdateAsync();
-        await Updates. reloadAsync();
-      }
-    } catch (error) {
-    // You can also add an alert() to see the error message in case of an error when fetching updates.
-    alert('Error fetching latest Expo update: ${error} *');
-    }
-  }
-
-  useEffect(() => {
-    onFetchUpdateAsync()
-  }, [])
 
   useEffect(() => {
     // Load routines from AsyncStorage when the app starts
@@ -108,6 +91,10 @@ const App = () => {
     setRoutineListState[[...routineList]]
     setSelectedRoutine(newRoutine);
     saveRoutines();
+
+    setTimeout(() => { //wait for it to process the new item so it can scroll all the way down
+      listRef2.current.scrollToEnd();
+    }, 100);
   }
 
   const routinePress = (item) => {
@@ -177,6 +164,11 @@ const App = () => {
     updatedRoutineList[routineIndex].timers.push(newTimer)
     setRoutineListState(updatedRoutineList)
     saveRoutines();
+
+    setTimeout(() => { //wait for it to process the new item so it can scroll all the way down
+      listRef.current.scrollToEnd();
+    }, 100);
+    
   }
 
   const playRoutine = () => {
@@ -393,7 +385,10 @@ const App = () => {
         </View>
 
         <View style={{flex: 1, justifyContent: 'center', bottom: 500}}>
-          <Text style={{fontWeight: 'bold', fontSize: 25, paddingBottom: 0, textAlign: 'center'}}>
+          <Text style={{fontSize: 25, paddingBottom: 0, textAlign: 'center'}}>
+            {selectedRoutine ? selectedRoutine.text : "Fallback Text"}
+          </Text>
+          <Text style={{fontWeight: 'bold', fontSize: 40, paddingBottom: 0, textAlign: 'center'}}>
             {selectedRoutine && selectedRoutine.timers[currentTimerIndex] ?
               selectedRoutine.timers[currentTimerIndex].name :
               "Fallback Text"}
@@ -439,7 +434,7 @@ const App = () => {
             activeOpacity={.8}
           >
             {isTimerPaused ? (
-              <Entypo name='controller-play' size={50}/>
+              <Entypo name='controller-play' size={50}/> //play and pause buttons
             ) : (
               <AntDesign name='pause' size={50}/>
             )}
@@ -474,13 +469,14 @@ const App = () => {
 
       <FlatList //list of routines
         data={routineList}
+        ref={listRef2}
         renderItem={({item}) => {
           return (
               <TouchableOpacity
                 key={item.id}
                 onPress={() => routinePress(item)}
                 activeOpacity={1}
-                style={{backgroundColor: item.id === selectedRoutine?.id ? 'lightblue' : 'white'}}
+                style={{alignItems: 'center', backgroundColor: item.id === selectedRoutine?.id ? 'lightblue' : 'white'}}
               >
               <TextTicker
                 scrollSpeed={20}
@@ -495,8 +491,8 @@ const App = () => {
               </TouchableOpacity>
           );
         }}
-        ListEmptyComponent={<Text>Tap the "+" to create a new routine!</Text>}
-        style={{height: 400, width: 300, maxHeight: 400, maxWidth: 300, borderColor: 'black', borderWidth: 2}}
+        ListEmptyComponent={<Text style={{textAlign: 'center'}}>Tap the "+" to create a new routine!</Text>}
+        style={{height: 400, width: 400, maxHeight: 400, maxWidth: 400, borderColor: 'black', borderWidth: 0}}
       />
 
       <View style={{flexDirection: 'row'}}> 
@@ -527,51 +523,13 @@ const App = () => {
             <TouchableOpacity onPress={() => deleteRoutine(selectedRoutine.id)}>
               <Feather name='trash' size={25}/>
             </TouchableOpacity>
-
             <View>
               <TextInput style={{height: 50, width: 300, fontSize: 25, textAlign: 'center', fontWeight: 'bold'}}
                 value={selectedRoutine ? selectedRoutine.text : " "}
-                //maxLength={21}
+                maxLength={40}
                 onChangeText={(newName) => renameRoutine(newName)}
+                returnKeyType='done'
               />
-              <View style={{paddingTop: 0}}>
-                {selectedRoutine && (
-                  <FlatList //list of timers
-                  data={selectedRoutine.timers}
-                  renderItem={({item}) => {
-                    return (
-                      <View style={{flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'cyan', padding: 5}}>
-                        <View>
-                          <TextInput style={{fontSize: 20, textAlign: 'left', fontWeight: 'bold', overflow: 'hidden'}}
-                            value={item.name}
-                            multiline
-                            maxLength={28}
-                            onChangeText={(newName) => renameTimer(newName, item)}
-                          />
-                          <TextInput style={{fontSize: 30, textAlign: 'left', fontWeight: 'bold'}}
-                            value={item.duration}
-                            maxLength={5}
-                            placeholder='01:30'
-                            onChangeText={(duration) => chooseDuration(duration, item)}
-                          />
-                        </View>
-                        <View>
-                          <TouchableOpacity onPress={() => deleteTimer(item)}>
-                            <Text style={{fontSize: 30}}>-</Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity onPress={() => copyTimer(item)}>
-                            <Text style={{fontSize: 30}}>+</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-                  }}
-                    ListEmptyComponent={<Text>Tap the "+" to create add a timer!</Text>}
-                    style={{height: 700, width: 300, maxHeight: 1000, maxWidth: 400, borderColor: 'black', borderWidth: 2}}
-                  />
-                )}  
-              </View>
             </View>
             <View>
               <TouchableOpacity onPress={() => checkTimer()}>
@@ -580,7 +538,50 @@ const App = () => {
             </View>
           </View>
         </View>
+        <View style={{alignItems: 'center', paddingBottom: 300}}>
+            {selectedRoutine && (
+              <FlatList //list of timers
+              data={selectedRoutine.timers}
+              ref={listRef}
+              ItemSeparatorComponent={() => <View style={{height: 10}} />}
+              renderItem={({item}) => {
+                return (
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'cyan', padding: 5, borderRadius: 10}}>
+                    <View>
+                      <TextInput style={{fontSize: 20, textAlign: 'left', fontWeight: 'bold', overflow: 'hidden'}}
+                        value={item.name}
+                        maxLength={28}
+                        onChangeText={(newName) => renameTimer(newName, item)}
+                        returnKeyType='done'
+                      />
+                      <TextInput style={{fontSize: 30, textAlign: 'left', fontWeight: 'bold'}}
+                        value={item.duration}
+                        maxLength={5}
+                        placeholder='01:30'
+                        onChangeText={(duration) => chooseDuration(duration, item)}
+                        returnKeyType='done'
+                      />
+                    </View>
+                    <View>
+                      <TouchableOpacity onPress={() => deleteTimer(item)}>
+                        <Text style={{fontSize: 30}}>-</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={() => copyTimer(item)}>
+                        <Text style={{fontSize: 30}}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              }}
+                ListEmptyComponent={<Text>Tap the "+" to create add a timer!</Text>}
+                style={{ width: 300, maxHeight: 440, maxWidth: 400}}
+              />
+            )}  
+          </View>
       </Modal>
+
+
     </View>
   );
 };
